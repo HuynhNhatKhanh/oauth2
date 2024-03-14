@@ -147,7 +147,7 @@ func Login(c *fiber.Ctx) error {
 	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error saving refresh token"})
 	// }
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Login successfully"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send OTP login failed"})
 }
 
 func VerifyLogin(c *fiber.Ctx) error {

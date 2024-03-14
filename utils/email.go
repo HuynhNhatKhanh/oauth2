@@ -3,19 +3,13 @@ package utils
 import (
 	"fmt"
 	"math/rand"
-
-	gomail "gopkg.in/gomail.v2"
-)
-
-var (
-	key  = "xsmtpsib-2c6d85049fa4c99f949f4e54fa40cff35b33dc1260c3d65c9732b4ba7ae8e56a-8d2cyLZOGVm43WgX"
-	from = "khanhhuynh28082000@gmail.com"
-	host = "smtp-relay.brevo.com"
-	port = 587
+	"net/smtp"
+	"os"
+	"time"
 )
 
 func GenerateOTP() string {
-	// rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 	min := 100000
 	max := 999999
 	return fmt.Sprintf("%d", rand.Intn(max-min+1)+min)
@@ -23,16 +17,23 @@ func GenerateOTP() string {
 
 func SendOTP(email, otp string) error {
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", from)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "OTP Verification")
-	msg.SetBody("text/html", "Your OTP code is: "+otp)
+	from := os.Getenv("MAIL_FROM_ADDRESS")
+	pass := os.Getenv("MAIL_PASSWORD")
+	host := os.Getenv("MAIL_HOST")
+	port := os.Getenv("MAIL_PORT")
+	to := email
 
-	mail := gomail.NewDialer(host, port, from, key)
+	address := host + ":" + port
+	msg := "From: " + from + "\n" +
+		"To: " + to + "\n" +
+		"Subject: OTP Verification\n\n" +
+		"Your OTP code is: " + otp
 
-	if err := mail.DialAndSend(msg); err != nil {
-		fmt.Println(err)
+	auth := smtp.PlainAuth("", from, pass, host)
+
+	err := smtp.SendMail(address, auth, from, []string{to}, []byte(msg))
+
+	if err != nil {
 		return err
 	}
 
