@@ -53,8 +53,7 @@ func Register(c *fiber.Ctx) error {
 	if errMail != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 	}
-	return c.Redirect("/verify", fiber.StatusSeeOther)
-	// return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send otp successfully"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send otp successfully"})
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
@@ -149,9 +148,9 @@ func VerifyLogin(c *fiber.Ctx) error {
 	}
 
 	// Check if the user's email is already verified
-	// if user.IsVerifiedLogin {
-	// 	return c.JSON(fiber.Map{"message": "Email already verified"})
-	// }
+	if user.IsVerifiedLogin {
+		return c.JSON(fiber.Map{"message": "Email already verified"})
+	}
 
 	if code != user.OTPLogin {
 		return c.JSON(fiber.Map{"message": "Invalid verification code"})
@@ -164,8 +163,7 @@ func VerifyLogin(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Verify login successfully")
-	// fmt.Println(user)
+
 	// Create accessToken and refreshToken
 	accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
 	if err != nil {
