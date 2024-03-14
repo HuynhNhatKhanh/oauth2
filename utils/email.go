@@ -8,7 +8,12 @@ import (
 	gomail "gopkg.in/gomail.v2"
 )
 
-var ()
+var (
+	key  = "xsmtpsib-2c6d85049fa4c99f949f4e54fa40cff35b33dc1260c3d65c9732b4ba7ae8e56a-crw1FV6WM8JEaxPD"
+	from = "khanhhuynh28082000@gmail.com"
+	host = "smtp-relay.brevo.com"
+	port = 587
+)
 
 func GenerateOTP() string {
 	rand.Seed(time.Now().UnixNano())
