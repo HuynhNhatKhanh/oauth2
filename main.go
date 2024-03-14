@@ -14,7 +14,7 @@ func main() {
 
 	app := fiber.New()
 
-	//run database
+	//Run database
 	config.ConnectDB()
 
 	// Define routes
@@ -24,7 +24,7 @@ func main() {
 	app.Get("/verifyLogin", handlers.VerifyLogin)
 	// app.Post("/verify", handlers.VerifyOTP)
 	// app.Post("/refresh", handlers.RefreshToken)
-	// app.Get("/user", handlers.GetUser)
+	app.Get("/user", handlers.GetUser)
 
 	log.Fatal(app.Listen(":3000"))
 }

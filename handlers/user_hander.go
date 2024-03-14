@@ -4,21 +4,27 @@ package handlers
 import (
 	"user_login/utils"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
 )
 
 func GetUser(c *fiber.Ctx) error {
 	// Lấy thông tin user từ token (accessToken)
 	accessToken := c.Get("Authorization")
-	userID, err := utils.ParseAccessToken(accessToken)
+
+	tokenAcc, err := utils.ParseToken(accessToken)
+
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
 
-	// Tìm kiếm user trong database và trả về thông tin
-	// ...
+	if tokenAcc.Valid {
+		claims := tokenAcc.Claims.(jwt.MapClaims)
+		username := claims["username"].(string)
+		email := claims["email"].(string)
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"username": username, "email": email, "message": "User info retrieved successfully"})
+	} else {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Token is invalid"})
+	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"userID": userID, "message": "User info retrieved successfully"})
 }
-
-// Các hàm khác để thực hiện các thao tác khác với người dùng như cập nhật thông tin, đổi mật khẩu, v.v.

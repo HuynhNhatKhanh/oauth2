@@ -4,6 +4,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 	"user_login/config"
 	"user_login/models"
@@ -122,13 +123,14 @@ func Login(c *fiber.Ctx) error {
 	// Check if user is verified login
 	if !userFromDB.IsVerifiedLogin {
 		otp := utils.GenerateOTP()
+
 		errMail := utils.SendOTP(userFromDB.Email, otp)
 		if errMail != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 		}
 		userCollection.UpdateOne(context.Background(), bson.M{"email": userFromDB.Email}, bson.M{"$set": bson.M{"otp_login": otp}})
 
-		return c.Redirect("/profile", fiber.StatusSeeOther)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Send OTP to verify login"})
 	}
 
 	// Tạo accessToken và refreshToken
@@ -159,9 +161,9 @@ func VerifyLogin(c *fiber.Ctx) error {
 	}
 
 	// Check if the user's email is already verified
-	if user.IsVerifiedLogin {
-		return c.JSON(fiber.Map{"message": "Email already verified"})
-	}
+	// if user.IsVerifiedLogin {
+	// 	return c.JSON(fiber.Map{"message": "Email already verified"})
+	// }
 
 	if code != user.OTPLogin {
 		return c.JSON(fiber.Map{"message": "Invalid verification code"})
@@ -174,8 +176,24 @@ func VerifyLogin(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Verify login successfully")
+	// fmt.Println(user)
+	// Create accessToken and refreshToken
+	accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString("Error generating access token")
+	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Login verified successfully"})
+	refreshToken, err := utils.GenerateToken("refresh", time.Hour, user)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString("Error generating refresh token")
+	}
+	response := map[string]string{
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
 func CheckUserExist(c *fiber.Ctx, email string) bool {
