@@ -23,7 +23,7 @@ func main() {
 	app.Post("/login", handlers.Login)
 	app.Get("/verifyLogin", handlers.VerifyLogin)
 	// app.Post("/verify", handlers.VerifyOTP)
-	// app.Post("/refresh", handlers.RefreshToken)
+	app.Post("/refresh", handlers.RefreshToken)
 	app.Get("/user", handlers.GetUser)
 
 	log.Fatal(app.Listen(":3000"))

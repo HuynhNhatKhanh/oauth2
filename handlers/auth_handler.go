@@ -10,6 +10,7 @@ import (
 	"user_login/models"
 	"user_login/utils"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -201,6 +202,30 @@ func CheckUserExist(c *fiber.Ctx, email string) bool {
 		return false
 	}
 	return true
+}
+
+func RefreshToken(c *fiber.Ctx) error {
+	refreshToken := c.Get("RefreshToken")
+	tokenRe, err := utils.ParseToken(refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
+	}
+	if tokenRe.Valid {
+		claims := tokenRe.Claims.(jwt.MapClaims)
+		email := claims["email"].(string)
+		user := models.User{}
+		err := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
+		}
+		accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error generating access token"})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"accessToken": accessToken})
+	} else {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Refresh token is invalid"})
+	}
 }
 
 // func Login(c *fiber.Ctx) error {
