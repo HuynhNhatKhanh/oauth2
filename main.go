@@ -11,20 +11,23 @@ import (
 )
 
 func main() {
-
+	// Create a new Fiber instance
 	app := fiber.New()
 
 	//Run database
 	config.ConnectDB()
 
-	// Define routes
+	// -------------Define routes----------------
+	// Register routes
 	app.Post("/register", handlers.Register)
 	app.Get("/verify", handlers.VerifyEmail)
+	// Login routes
 	app.Post("/login", handlers.Login)
 	app.Get("/verifyLogin", handlers.VerifyLogin)
-	// app.Post("/verify", handlers.VerifyOTP)
-	app.Post("/refresh", handlers.RefreshToken)
+	// User routes
 	app.Get("/user", handlers.GetUser)
+	// Refresh token
+	app.Post("/refresh", handlers.RefreshToken)
 
 	log.Fatal(app.Listen(":3000"))
 }

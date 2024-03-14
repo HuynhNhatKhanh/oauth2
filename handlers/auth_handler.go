@@ -134,19 +134,6 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Send OTP to verify login"})
 	}
 
-	// Tạo accessToken và refreshToken
-	// accessToken, refreshToken, err := utils.CreateTokens(existingUser.ID)
-	// if err != nil {
-	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error creating token"})
-	// }
-
-	// // Lưu refreshToken vào database
-	// existingUser.RefreshToken = refreshToken
-	// err = existingUser.UpdateRefreshToken(userCollection)
-	// if err != nil {
-	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error saving refresh token"})
-	// }
-
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send OTP login failed"})
 }
 
@@ -205,7 +192,7 @@ func CheckUserExist(c *fiber.Ctx, email string) bool {
 }
 
 func RefreshToken(c *fiber.Ctx) error {
-	refreshToken := c.Get("RefreshToken")
+	refreshToken := c.Get("refreshToken")
 	tokenRe, err := utils.ParseToken(refreshToken)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
@@ -227,36 +214,3 @@ func RefreshToken(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Refresh token is invalid"})
 	}
 }
-
-// func Login(c *fiber.Ctx) error {
-// 	// Xác thực username/password
-// 	// ...
-
-// 	// Kiểm tra và gửi OTP đến email
-// 	// ...
-
-// 	// Trả về accessToken và refreshToken
-// 	// ...
-
-// 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"accessToken": accessToken, "refreshToken": refreshToken})
-// }
-
-// func VerifyOTP(c *fiber.Ctx) error {
-// 	// Xác thực OTP
-// 	// ...
-
-// 	// Trả về accessToken và refreshToken
-// 	// ...
-
-// 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"accessToken": accessToken, "refreshToken": refreshToken})
-// }
-
-// func RefreshToken(c *fiber.Ctx) error {
-// 	// Xác thực refreshToken
-// 	// ...
-
-// 	// Tạo và trả về accessToken mới
-// 	// ...
-
-// 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"accessToken": newAccessToken})
-// }
