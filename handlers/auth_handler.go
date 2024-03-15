@@ -40,7 +40,7 @@ func Register(c *fiber.Ctx) error {
 
 	// otp := utils.GenerateOTP()
 	// newUser.OTP = otp
-	newUser.Password = utils.HashPassword(newUser.Password)
+	newUser.Password = utils.HashString(newUser.Password)
 	newUser.IsVerified = false
 	newUser.CreatedAt = time.Now()
 
@@ -52,7 +52,7 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	emailParsed := newUser.Email
-	emailParsed = utils.HashPassword(emailParsed)
+	emailParsed = utils.HashString(emailParsed)
 
 	//Send email verification
 	errMail := utils.SendOTP(newUser.Email, "link", emailParsed, newUser.Username)
@@ -86,7 +86,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 	// 	return c.JSON(fiber.Map{"message": "Invalid verification code"})
 	// }
 
-	if !utils.ComparePasswordHash(emailParsed, user.Email) {
+	if !utils.CompareStringHash(emailParsed, user.Email) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Email verified failed"})
 	}
 
@@ -125,7 +125,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Check password
-	if !utils.ComparePasswordHash(userFromDB.Password, existingUser.Password) {
+	if !utils.CompareStringHash(userFromDB.Password, existingUser.Password) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Incorrect password"})
 	}
 
