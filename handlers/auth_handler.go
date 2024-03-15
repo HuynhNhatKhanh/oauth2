@@ -56,9 +56,9 @@ func Register(c *fiber.Ctx) error {
 	//Send email verification
 	errMail := utils.SendLinkOrOTP(newUser.Email, "link", emailParsed, newUser.Username)
 	if errMail != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send link"})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send otp successfully"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send link successfully"})
 }
 
 // VerifyEmail verifies the email of a user
