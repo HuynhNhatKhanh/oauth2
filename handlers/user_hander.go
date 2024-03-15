@@ -12,6 +12,7 @@ import (
 
 // GetUser returns the user information with the given access token
 func GetUser(c *fiber.Ctx) error {
+	// Get the access token from the request header and parse it
 	accessToken := c.Get("accessToken")
 	tokenAcc, err := utils.ParseToken(accessToken)
 
@@ -19,6 +20,7 @@ func GetUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
 
+	// Check if the token is valid
 	if tokenAcc.Valid {
 		claims := tokenAcc.Claims.(jwt.MapClaims)
 		username := claims["username"].(string)
@@ -31,12 +33,12 @@ func GetUser(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
 		}
 
+		// Return the user information
 		response := map[string]string{
 			"username": user.Username,
 			"email":    user.Email,
 			"created":  user.CreatedAt.String(),
 		}
-
 		return c.Status(fiber.StatusOK).JSON(response)
 	} else {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Token is invalid"})

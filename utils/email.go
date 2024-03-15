@@ -16,8 +16,8 @@ func GenerateOTP() string {
 	return fmt.Sprintf("%d", rand.Intn(max-min+1)+min)
 }
 
-// SendOTP sends an OTP to the user's email
-func SendOTP(email, options string, otp string, username string) error {
+// SendLinkOrOTP sends link or to the user's email
+func SendLinkOrOTP(email, options string, otp string, username string) error {
 
 	hostLink := os.Getenv("HOST")
 
@@ -34,7 +34,7 @@ func SendOTP(email, options string, otp string, username string) error {
 		msg = "From: " + from + "\n" +
 			"To: " + to + "\n" +
 			"Subject: Email Verification\n\n" +
-			"Click the link to verify your email: " + hostLink + "/verify?usrename=" + username + "&email=" + otp
+			"Click the link to verify your email: " + hostLink + "/verify?username=" + username + "&email=" + otp
 
 	} else if options == "otp" {
 		msg = "From: " + from + "\n" +

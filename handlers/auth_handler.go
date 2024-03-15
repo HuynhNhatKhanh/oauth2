@@ -54,7 +54,7 @@ func Register(c *fiber.Ctx) error {
 	emailParsed = utils.HashString(emailParsed)
 
 	//Send email verification
-	errMail := utils.SendOTP(newUser.Email, "link", emailParsed, newUser.Username)
+	errMail := utils.SendLinkOrOTP(newUser.Email, "link", emailParsed, newUser.Username)
 	if errMail != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 	}
@@ -63,8 +63,8 @@ func Register(c *fiber.Ctx) error {
 
 // VerifyEmail verifies the email of a user
 func VerifyEmail(c *fiber.Ctx) error {
+	// Get email and username from query
 	emailParsed := c.Query("email")
-	// code := c.Query("otp")
 	username := c.Query("username")
 
 	fmt.Println(emailParsed)
@@ -136,7 +136,7 @@ func Login(c *fiber.Ctx) error {
 	if !userFromDB.IsVerifiedLogin {
 		otp := utils.GenerateOTP()
 
-		errMail := utils.SendOTP(userFromDB.Email, "otp", otp, "")
+		errMail := utils.SendLinkOrOTP(userFromDB.Email, "otp", otp, "")
 		if errMail != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 		}
@@ -150,6 +150,7 @@ func Login(c *fiber.Ctx) error {
 
 // VerifyLogin verifies the login of a user
 func VerifyLogin(c *fiber.Ctx) error {
+	// Get email and otp login from query
 	email := c.Query("email")
 	code := c.Query("otp_login")
 
@@ -165,6 +166,7 @@ func VerifyLogin(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Email already verified"})
 	}
 
+	// Check otp login
 	if code != user.OTPLogin {
 		return c.JSON(fiber.Map{"message": "Invalid verification code"})
 	}
@@ -177,16 +179,18 @@ func VerifyLogin(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Create accessToken and refreshToken
+	// Create accessToken time live 15 minutes
 	accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Error generating access token")
 	}
 
+	// Create refreshToken time live 1 hour
 	refreshToken, err := utils.GenerateToken("refresh", time.Hour, user)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Error generating refresh token")
 	}
+
 	response := map[string]string{
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
@@ -197,11 +201,15 @@ func VerifyLogin(c *fiber.Ctx) error {
 
 // RefreshToken refreshes the access token
 func RefreshToken(c *fiber.Ctx) error {
+	// Get refresh token from request header and parse it
 	refreshToken := c.Get("refreshToken")
 	tokenRe, err := utils.ParseToken(refreshToken)
+
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
+
+	// Check if the refresh token is valid
 	if tokenRe.Valid {
 		claims := tokenRe.Claims.(jwt.MapClaims)
 		email := claims["email"].(string)
@@ -213,7 +221,7 @@ func RefreshToken(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
 		}
 
-		// Generate new access token
+		// Generate new access token time live 15 minutes
 		accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error generating access token"})
