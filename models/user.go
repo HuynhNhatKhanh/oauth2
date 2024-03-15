@@ -3,9 +3,13 @@ package models
 
 import (
 	"time"
+	"user_login/config"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
+
+var UserCollection *mongo.Collection = config.GetCollection(config.DB, "users")
 
 type User struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"`

@@ -25,7 +25,7 @@ func GetUser(c *fiber.Ctx) error {
 
 		user := models.User{}
 		filter := bson.M{"email": email, "username": username}
-		err := userCollection.FindOne(context.Background(), filter).Decode(&user)
+		err := models.UserCollection.FindOne(context.Background(), filter).Decode(&user)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
 		}

@@ -15,19 +15,31 @@ func GenerateOTP() string {
 	return fmt.Sprintf("%d", rand.Intn(max-min+1)+min)
 }
 
-func SendOTP(email, otp string) error {
+func SendOTP(email, options string, otp string, username string) error {
+
+	hostLink := os.Getenv("HOST")
 
 	from := os.Getenv("MAIL_FROM_ADDRESS")
 	pass := os.Getenv("MAIL_PASSWORD")
 	host := os.Getenv("MAIL_HOST")
 	port := os.Getenv("MAIL_PORT")
 	to := email
-
 	address := host + ":" + port
-	msg := "From: " + from + "\n" +
-		"To: " + to + "\n" +
-		"Subject: OTP Verification\n\n" +
-		"Your OTP code is: " + otp
+
+	msg := ""
+
+	if options == "link" {
+		msg = "From: " + from + "\n" +
+			"To: " + to + "\n" +
+			"Subject: Email Verification\n\n" +
+			"Click the link to verify your email: " + hostLink + "/verify?usrename=" + username + "&email=" + otp
+
+	} else if options == "otp" {
+		msg = "From: " + from + "\n" +
+			"To: " + to + "\n" +
+			"Subject: OTP Verification\n\n" +
+			"Your OTP code is: " + otp
+	}
 
 	auth := smtp.PlainAuth("", from, pass, host)
 

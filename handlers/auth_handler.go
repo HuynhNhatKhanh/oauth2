@@ -6,18 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"user_login/config"
 	"user_login/models"
 	"user_login/utils"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 )
 
-var userCollection *mongo.Collection = config.GetCollection(config.DB, "users")
 var validate = validator.New()
 
 func Register(c *fiber.Ctx) error {
@@ -35,21 +32,30 @@ func Register(c *fiber.Ctx) error {
 	if CheckUserExist(c, newUser.Email) {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "User already exists"})
 	}
-	otp := utils.GenerateOTP()
-	newUser.OTP = otp
+
+	// Check if username already exists
+	if CheckUsernameExist(c, newUser.Username) {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "Username already exists"})
+	}
+
+	// otp := utils.GenerateOTP()
+	// newUser.OTP = otp
 	newUser.Password = utils.HashPassword(newUser.Password)
 	newUser.IsVerified = false
 	newUser.CreatedAt = time.Now()
 
-	_, err := userCollection.InsertOne(context.Background(), newUser)
+	_, err := models.UserCollection.InsertOne(context.Background(), newUser)
 
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error saving user"})
 	}
 
+	emailParsed := newUser.Email
+	emailParsed = utils.HashPassword(emailParsed)
+
 	//Send email verification
-	errMail := utils.SendOTP(newUser.Email, otp)
+	errMail := utils.SendOTP(newUser.Email, "link", emailParsed, newUser.Username)
 	if errMail != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 	}
@@ -57,12 +63,16 @@ func Register(c *fiber.Ctx) error {
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
-	email := c.Query("email")
-	code := c.Query("otp")
+	emailParsed := c.Query("email")
+	// code := c.Query("otp")
+	username := c.Query("username")
+
+	fmt.Println(emailParsed)
+	fmt.Println(username)
 
 	// Retrieve user from the database
 	var user models.User
-	err := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	err := models.UserCollection.FindOne(context.Background(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -72,14 +82,18 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Email already verified"})
 	}
 
-	if code != user.OTP {
-		return c.JSON(fiber.Map{"message": "Invalid verification code"})
+	// if code != user.OTP {
+	// 	return c.JSON(fiber.Map{"message": "Invalid verification code"})
+	// }
+
+	if !utils.ComparePasswordHash(emailParsed, user.Email) {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Email verified failed"})
 	}
 
 	// Update the user's verification status in the database
-	filter := bson.M{"email": email}
+	filter := bson.M{"email": user.Email}
 	update := bson.M{"$set": bson.M{"is_verified": true}}
-	_, err = userCollection.UpdateOne(context.Background(), filter, update)
+	_, err = models.UserCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
@@ -97,7 +111,7 @@ func Login(c *fiber.Ctx) error {
 
 	// Check and find email user in database
 	filter := bson.M{"email": existingUser.Email}
-	result := userCollection.FindOne(context.Background(), filter)
+	result := models.UserCollection.FindOne(context.Background(), filter)
 	if result.Err() != nil {
 		fmt.Println(result.Err())
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
@@ -124,11 +138,11 @@ func Login(c *fiber.Ctx) error {
 	if !userFromDB.IsVerifiedLogin {
 		otp := utils.GenerateOTP()
 
-		errMail := utils.SendOTP(userFromDB.Email, otp)
+		errMail := utils.SendOTP(userFromDB.Email, "otp", otp, "")
 		if errMail != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to send OTP"})
 		}
-		userCollection.UpdateOne(context.Background(), bson.M{"email": userFromDB.Email}, bson.M{"$set": bson.M{"otp_login": otp}})
+		models.UserCollection.UpdateOne(context.Background(), bson.M{"email": userFromDB.Email}, bson.M{"$set": bson.M{"otp_login": otp}})
 
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Send OTP to verify login"})
 	}
@@ -142,7 +156,7 @@ func VerifyLogin(c *fiber.Ctx) error {
 
 	// Retrieve user from the database
 	var user models.User
-	err := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -159,7 +173,7 @@ func VerifyLogin(c *fiber.Ctx) error {
 	// Update the user's verification status in the database
 	filter := bson.M{"email": email}
 	update := bson.M{"$set": bson.M{"is_verified_login": true}}
-	_, err = userCollection.UpdateOne(context.Background(), filter, update)
+	_, err = models.UserCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
@@ -183,7 +197,14 @@ func VerifyLogin(c *fiber.Ctx) error {
 }
 
 func CheckUserExist(c *fiber.Ctx, email string) bool {
-	if err := userCollection.FindOne(context.Background(), bson.M{"email": email}).Err(); err != nil {
+	if err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Err(); err != nil {
+		return false
+	}
+	return true
+}
+
+func CheckUsernameExist(c *fiber.Ctx, username string) bool {
+	if err := models.UserCollection.FindOne(context.Background(), bson.M{"username": username}).Err(); err != nil {
 		return false
 	}
 	return true
@@ -199,7 +220,7 @@ func RefreshToken(c *fiber.Ctx) error {
 		claims := tokenRe.Claims.(jwt.MapClaims)
 		email := claims["email"].(string)
 		user := models.User{}
-		err := userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
 		}
