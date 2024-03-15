@@ -17,6 +17,7 @@ import (
 
 var validate = validator.New()
 
+// Register a new user
 func Register(c *fiber.Ctx) error {
 
 	var newUser models.User
@@ -38,8 +39,6 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "Username already exists"})
 	}
 
-	// otp := utils.GenerateOTP()
-	// newUser.OTP = otp
 	newUser.Password = utils.HashString(newUser.Password)
 	newUser.IsVerified = false
 	newUser.CreatedAt = time.Now()
@@ -62,6 +61,7 @@ func Register(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send otp successfully"})
 }
 
+// VerifyEmail verifies the email of a user
 func VerifyEmail(c *fiber.Ctx) error {
 	emailParsed := c.Query("email")
 	// code := c.Query("otp")
@@ -82,10 +82,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Email already verified"})
 	}
 
-	// if code != user.OTP {
-	// 	return c.JSON(fiber.Map{"message": "Invalid verification code"})
-	// }
-
+	// Check if the email verification
 	if !utils.CompareStringHash(emailParsed, user.Email) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Email verified failed"})
 	}
@@ -101,6 +98,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Email verified successfully"})
 }
 
+// Login a user
 func Login(c *fiber.Ctx) error {
 
 	// Get user from request body
@@ -150,6 +148,7 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Send OTP login failed"})
 }
 
+// VerifyLogin verifies the login of a user
 func VerifyLogin(c *fiber.Ctx) error {
 	email := c.Query("email")
 	code := c.Query("otp_login")
@@ -196,20 +195,7 @@ func VerifyLogin(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func CheckUserExist(c *fiber.Ctx, email string) bool {
-	if err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Err(); err != nil {
-		return false
-	}
-	return true
-}
-
-func CheckUsernameExist(c *fiber.Ctx, username string) bool {
-	if err := models.UserCollection.FindOne(context.Background(), bson.M{"username": username}).Err(); err != nil {
-		return false
-	}
-	return true
-}
-
+// RefreshToken refreshes the access token
 func RefreshToken(c *fiber.Ctx) error {
 	refreshToken := c.Get("refreshToken")
 	tokenRe, err := utils.ParseToken(refreshToken)
@@ -220,10 +206,14 @@ func RefreshToken(c *fiber.Ctx) error {
 		claims := tokenRe.Claims.(jwt.MapClaims)
 		email := claims["email"].(string)
 		user := models.User{}
+
+		// Retrieve user from the database
 		err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "User not found"})
 		}
+
+		// Generate new access token
 		accessToken, err := utils.GenerateToken("access", time.Minute*15, user)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error generating access token"})
@@ -232,4 +222,20 @@ func RefreshToken(c *fiber.Ctx) error {
 	} else {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Refresh token is invalid"})
 	}
+}
+
+// CheckUserExist checks if a user already exists in the database
+func CheckUserExist(c *fiber.Ctx, email string) bool {
+	if err := models.UserCollection.FindOne(context.Background(), bson.M{"email": email}).Err(); err != nil {
+		return false
+	}
+	return true
+}
+
+// CheckUsernameExist checks if a username already exists in the database
+func CheckUsernameExist(c *fiber.Ctx, username string) bool {
+	if err := models.UserCollection.FindOne(context.Background(), bson.M{"username": username}).Err(); err != nil {
+		return false
+	}
+	return true
 }

@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ConnectDB connects to the database
 func ConnectDB() *mongo.Client {
 	err := godotenv.Load()
 	if err != nil {

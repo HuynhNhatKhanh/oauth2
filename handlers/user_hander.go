@@ -10,6 +10,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// GetUser returns the user information with the given access token
 func GetUser(c *fiber.Ctx) error {
 	accessToken := c.Get("accessToken")
 	tokenAcc, err := utils.ParseToken(accessToken)

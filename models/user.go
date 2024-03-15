@@ -9,11 +9,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// UserCollection is the collection name
 var UserCollection *mongo.Collection = config.GetCollection(config.DB, "users")
 
+// User model
 type User struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"`
-	OTP             string             `bson:"otp,omitempty"`
 	OTPLogin        string             `bson:"otp_login,omitempty"`
 	Username        string             `json:"username" bson:"username" validate:"required"`
 	Password        string             `json:"password" bson:"password" validate:"required"`

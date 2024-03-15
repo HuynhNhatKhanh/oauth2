@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// GenerateOTP generates a random 6 digit number
 func GenerateOTP() string {
 	rand.Seed(time.Now().UnixNano())
 	min := 100000
@@ -15,6 +16,7 @@ func GenerateOTP() string {
 	return fmt.Sprintf("%d", rand.Intn(max-min+1)+min)
 }
 
+// SendOTP sends an OTP to the user's email
 func SendOTP(email, options string, otp string, username string) error {
 
 	hostLink := os.Getenv("HOST")

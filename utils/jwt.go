@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// GenerateToken generates a new JWT token
 func GenerateToken(tokenType string, expiration time.Duration, user models.User) (string, error) {
 	ecdsaPrivateKey, err := os.ReadFile("private.pem")
 	if err != nil {
@@ -44,6 +45,7 @@ func GenerateToken(tokenType string, expiration time.Duration, user models.User)
 	return tokenString, nil
 }
 
+// ParseToken parses a JWT token
 func ParseToken(tokenString string) (*jwt.Token, error) {
 	// Parse public key
 	ecdsaPublickey, err := os.ReadFile("public.pem")
